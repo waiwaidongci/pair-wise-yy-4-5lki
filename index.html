@@ -3,151 +3,697 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>水下考古潜水记录</title>
+  <title>水下考古样本移交台</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Arial, "PingFang SC", sans-serif; background: #e8f2f3; color: #183035; }
-    header { padding: 18px 24px; background: #fff; border-bottom: 1px solid #c9dadc; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
-    h1 { margin: 0; font-size: 26px; }
-    button { border: 0; border-radius: 8px; padding: 10px 13px; background: #1d6c78; color: #fff; font-weight: 800; cursor: pointer; }
+    header { padding: 14px 24px; background: #fff; border-bottom: 1px solid #c9dadc; display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 24px; }
+    h2 { margin: 4px 0 10px; font-size: 17px; }
+    h3 { margin: 12px 0 6px; font-size: 14px; color: #5c7378; }
+    button { border: 0; border-radius: 8px; padding: 9px 13px; background: #1d6c78; color: #fff; font-weight: 800; cursor: pointer; font-size: 13px; }
+    button:hover { filter: brightness(1.08); }
     button.secondary { background: #64777b; }
+    button.ok { background: #217a47; }
+    button.warn { background: #b07c1a; }
+    button.danger { background: #a8423c; }
+    button.mini { padding: 4px 9px; font-size: 12px; border-radius: 6px; }
+    button:disabled { opacity: .45; cursor: not-allowed; filter: none; }
     input, select, textarea { width: 100%; border: 1px solid #c9dadc; border-radius: 6px; padding: 9px; font: inherit; background: #fff; }
-    textarea { min-height: 64px; }
+    textarea { min-height: 58px; resize: vertical; }
     label { display: block; margin: 9px 0 5px; color: #5c7378; font-size: 13px; }
-    .app { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px; }
+    .app { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 16px; padding: 16px; align-items: start; }
     .panel { background: #fff; border: 1px solid #c9dadc; border-radius: 8px; padding: 14px; }
-    .map { position: relative; height: calc(100vh - 128px); min-height: 560px; overflow: hidden; background: radial-gradient(circle at 30% 20%, #5fa8b1, #0f5262 55%, #07333f); border-radius: 8px; border: 1px solid #0c4451; cursor: crosshair; }
+    .col { display: grid; gap: 16px; }
+    .mapwrap { margin: 0; }
+    .map { position: relative; height: 46vh; min-height: 320px; overflow: hidden; background: radial-gradient(circle at 30% 20%, #5fa8b1, #0f5262 55%, #07333f); border-radius: 8px; border: 1px solid #0c4451; cursor: crosshair; }
     .wreck { position: absolute; left: 24%; top: 28%; width: 52%; height: 31%; border: 3px solid rgba(220,235,224,.55); border-radius: 48% 44% 42% 50%; transform: rotate(-9deg); }
     .rib { position: absolute; width: 2px; height: 36%; background: rgba(220,235,224,.35); top: 27%; transform: rotate(-9deg); }
-    .marker { position: absolute; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 800; transform: translate(-50%, -50%); border: 2px solid rgba(255,255,255,.7); box-shadow: 0 4px 12px rgba(0,0,0,.35); cursor: pointer; }
-    .marker.selected { outline: 4px solid rgba(255,234,124,.75); }
+    .marker { position: absolute; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 800; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,.35); cursor: pointer; padding: 0; }
+    .marker.selected { outline: 4px solid rgba(255,234,124,.85); z-index: 5; }
+    .marker.stage-reviewed { outline: 3px solid #e9c84b; }
+    .marker.stage-stored { outline: 3px solid #37a75a; }
+    .marker.stage-pending { outline: 3px solid #d9534f; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { outline-color: rgba(217,83,79,.95); } 50% { outline-color: rgba(217,83,79,.3); } }
     .ceramic { background: #b56c38; } .wood { background: #6c4b2f; } .metal { background: #6e7880; } .unknown { background: #725ca6; }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: #5c7378; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
     .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-    .list { display: grid; gap: 8px; max-height: 330px; overflow: auto; }
+    .list { display: grid; gap: 8px; max-height: 340px; overflow: auto; }
+    .timeline { display: grid; gap: 8px; max-height: 560px; overflow: auto; }
     .item { border: 1px solid #d7e4e5; border-radius: 8px; padding: 10px; cursor: pointer; }
     .item.active { border-color: #1d6c78; background: #eef8f9; }
-    .timeline { display: grid; gap: 8px; max-height: 240px; overflow: auto; }
-    .pill { display: inline-block; padding: 3px 8px; border: 1px solid #c9dadc; border-radius: 999px; font-size: 12px; }
+    .item .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .pill { display: inline-block; padding: 3px 8px; border: 1px solid #c9dadc; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+    .st-registered { background: #e3f0fd; color: #1d4f8a; border-color: #b9d6f2; }
+    .st-reviewed { background: #fdf3d8; color: #8a641d; border-color: #f0dc9f; }
+    .st-stored { background: #e2f6e6; color: #1d6b35; border-color: #b6e2c2; }
+    .st-pending { background: #fde7e7; color: #8a2424; border-color: #f0b9b9; }
     .muted { color: #5c7378; font-size: 13px; }
-    @media (max-width: 980px) { header { display: block; } .app { grid-template-columns: 1fr; } .map { height: 560px; } }
+    .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .kv { display: grid; grid-template-columns: 84px 1fr; gap: 4px 10px; font-size: 13px; margin: 6px 0; }
+    .kv dt { color: #5c7378; } .kv dd { margin: 0; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+    .rev { border: 1px dashed #c9dadc; border-radius: 8px; padding: 8px 10px; margin-top: 8px; font-size: 13px; }
+    .rev.pending { border-style: solid; border-color: #e3a3a0; background: #fdf3f2; }
+    .rev .old { color: #a8423c; text-decoration: line-through; }
+    .rev .new { color: #1d6b35; font-weight: 700; }
+    .events { display: grid; gap: 4px; font-size: 13px; }
+    .empty { color: #8aa0a4; text-align: center; padding: 26px 10px; font-size: 13px; }
+    .modal { position: fixed; inset: 0; background: rgba(7,32,40,.5); display: none; align-items: center; justify-content: center; z-index: 30; padding: 16px; }
+    .modal.open { display: flex; }
+    .modal-card { background: #fff; border-radius: 10px; width: min(580px, 100%); max-height: 90vh; overflow: auto; padding: 18px 20px; box-shadow: 0 18px 50px rgba(0,0,0,.35); }
+    .modal-card h2 { margin-top: 0; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .roline { display: grid; grid-template-columns: 96px 1fr; gap: 6px; font-size: 13px; background: #f4f8f9; border-radius: 6px; padding: 8px 10px; margin-bottom: 4px; }
+    .roline span { color: #5c7378; }
+    .toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); background: #183035; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 14px; z-index: 50; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+    .toast.show { opacity: 1; }
+    .toast.err { background: #8a2424; }
+    .toast.ok { background: #1d6b35; }
+    .ver { border-left: 3px solid #c9dadc; padding: 6px 10px; margin: 8px 0; font-size: 13px; }
+    .ver.current { border-left-color: #217a47; background: #f2faf4; }
+    #operator { width: 150px; padding: 7px 9px; }
+    @media (max-width: 980px) { .app { grid-template-columns: 1fr; } .map { height: 380px; } }
   </style>
 </head>
 <body>
   <header>
-    <div><h1>水下考古潜水记录</h1><div class="muted">点击沉船平面图添加标记，筛选、编辑并导出JSON。</div></div>
-    <button id="exportBtn">导出JSON</button>
+    <div>
+      <h1>水下考古样本移交台</h1>
+      <div class="muted">出水登记 → 封存复核 → 入库移交，按潜次+编号管理，点击沉船平面图定位样本。</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input id="operator" placeholder="当前操作人（可选）">
+      <button id="newBtn">＋ 出水登记新样本</button>
+      <button id="exportBtn" class="secondary">导出JSON</button>
+    </div>
   </header>
+
   <main class="app">
-    <section class="panel">
-      <div class="map" id="map"><div class="wreck"></div></div>
-    </section>
+    <div class="col">
+      <figure class="panel mapwrap">
+        <div class="map" id="map"><div class="wreck"></div></div>
+        <figcaption class="legend">
+          <span><i class="dot" style="background:#fff;outline:2px solid #64777b"></i>待封存复核</span>
+          <span><i class="dot" style="background:#fff;outline:2px solid #e9c84b"></i>待入库移交</span>
+          <span><i class="dot" style="background:#fff;outline:2px solid #37a75a"></i>已入库</span>
+          <span><i class="dot" style="background:#fff;outline:2px solid #d9534f"></i>待确认修订（红圈）</span>
+          <span style="margin-left:auto">点击空白处登记新样本，点击标记选中</span>
+        </figcaption>
+      </figure>
+      <section class="panel" id="workbench"></section>
+    </div>
+
     <aside class="panel">
       <div class="toolbar">
-        <select id="filter"><option value="">全部类型</option><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
-        <select id="view"><option value="list">标记列表</option><option value="timeline">潜次时间线</option></select>
+        <select id="filterType"><option value="">全部类型</option><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
+        <select id="filterStage">
+          <option value="">全部状态</option>
+          <option value="registered">待封存复核</option>
+          <option value="reviewed">待入库移交</option>
+          <option value="stored">已入库</option>
+          <option value="pending">待确认修订</option>
+        </select>
+        <select id="filterDive"><option value="">全部潜次</option></select>
+        <select id="view"><option value="list">样本清单</option><option value="timeline">潜次时间线</option></select>
       </div>
-      <form id="form">
-        <h2>标记信息</h2>
-        <input name="id" type="hidden">
-        <label>编号</label><input name="code" required>
-        <label>类型</label><select name="type"><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
-        <label>潜次</label><input name="dive" placeholder="例如DIVE-04" required>
-        <label>深度</label><input name="depth" placeholder="例如18.4m" required>
-        <label>朝向</label><input name="orientation" placeholder="例如东北偏北">
-        <label>保存状态</label><input name="condition" placeholder="例如表面附着贝类">
-        <label>备注</label><textarea name="note"></textarea>
-        <div class="toolbar"><button>保存标记</button><button type="button" id="deleteBtn" class="secondary">删除</button></div>
-      </form>
-      <h2 id="listTitle">标记列表</h2>
+      <input id="search" placeholder="搜索编号 / 潜水员 / 库位…" style="margin-bottom:10px">
+      <h2 id="listTitle">样本清单</h2>
       <div id="list" class="list"></div>
     </aside>
   </main>
+
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <h2 id="modalTitle"></h2>
+      <div id="modalBody"></div>
+      <div class="modal-foot">
+        <button type="button" class="secondary" id="modalCancel">取消</button>
+        <button type="button" id="modalOk">确定</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
   <script>
-    const map = document.querySelector("#map");
-    const form = document.querySelector("#form");
-    const list = document.querySelector("#list");
-    const filter = document.querySelector("#filter");
-    const view = document.querySelector("#view");
-    const listTitle = document.querySelector("#listTitle");
-    const typeNames = { ceramic: "陶片", wood: "木构件", metal: "金属件", unknown: "未知物" };
-    let marks = JSON.parse(localStorage.getItem("zfl30Marks") || "[]");
-    let pending = null;
-    if (!marks.length) {
-      marks = [
-        { id: crypto.randomUUID(), code: "A-017", type: "ceramic", dive: "DIVE-01", x: 42, y: 46, depth: "17.8m", orientation: "东", condition: "边缘残缺", note: "靠近船肋" },
-        { id: crypto.randomUUID(), code: "W-003", type: "wood", dive: "DIVE-02", x: 58, y: 39, depth: "18.2m", orientation: "西北", condition: "稳定", note: "疑似横梁" }
-      ];
-      save();
+    "use strict";
+    /* ========== 基础工具 ========== */
+    const $ = s => document.querySelector(s);
+    const STORE_KEY = "uaHandoverSamplesV1";
+    const UI_KEY = "uaHandoverUiV1";
+    const TYPE_NAMES = { ceramic: "陶片", wood: "木构件", metal: "金属件", unknown: "未知物" };
+    const STAGE_META = {
+      registered: ["待封存复核", "st-registered"],
+      reviewed: ["待入库移交", "st-reviewed"],
+      stored: ["已入库", "st-stored"],
+      pending: ["待确认修订", "st-pending"]
+    };
+    const uid = () => crypto.randomUUID();
+    const nowIso = () => new Date().toISOString();
+    const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const fmt = iso => {
+      const d = new Date(iso), p = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+    const minutesAgo = m => new Date(Date.now() - m * 60000).toISOString();
+
+    let toastTimer;
+    function toast(msg, kind = "") {
+      const el = $("#toast");
+      el.textContent = msg;
+      el.className = "toast show " + kind;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.className = "toast " + kind, 2600);
     }
+
+    /* ========== 数据模型与持久化 ========== */
+    let samples = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    let ui = JSON.parse(localStorage.getItem(UI_KEY) || "{}");
+    let pendingPos = null;
+
+    if (!Array.isArray(samples)) {
+      samples = seed();
+      persist();
+    }
+    function persist() { localStorage.setItem(STORE_KEY, JSON.stringify(samples)); }
+    function persistUi() {
+      localStorage.setItem(UI_KEY, JSON.stringify({
+        filterType: $("#filterType").value, filterStage: $("#filterStage").value,
+        filterDive: $("#filterDive").value, view: $("#view").value,
+        q: $("#search").value, operator: $("#operator").value, selectedId: ui.selectedId || ""
+      }));
+    }
+
+    function seed() {
+      return [
+        {
+          id: uid(), dive: "DIVE-01", code: "A-017", type: "ceramic", diver: "张潜", reviewer: "李慎",
+          depth: "17.8m", orientation: "东偏南", condition: "边缘残缺", note: "靠近船肋，表面附着贝类",
+          x: 42, y: 46, stage: "reviewed", receiver: null, location: null, storedAt: null,
+          reg: { depth: "18.0m", orientation: "东", condition: "边缘残缺" },
+          revisions: [
+            { id: uid(), createdAt: minutesAgo(198), createdBy: "李慎", reason: "复测校正",
+              base: { depth: "18.0m", orientation: "东", condition: "边缘残缺" },
+              patch: { depth: "17.8m", orientation: "东偏南", condition: "边缘残缺" },
+              status: "confirmed", decidedAt: minutesAgo(190), decidedBy: "陈工" }
+          ],
+          events: [
+            { at: minutesAgo(240), type: "register", by: "张潜", text: "出水登记完成" },
+            { at: minutesAgo(198), type: "review", by: "李慎", text: "封存复核：深度、朝向有修改，生成待复核修订" },
+            { at: minutesAgo(190), type: "confirm", by: "陈工", text: "修订确认通过，封存复核完成" }
+          ]
+        },
+        {
+          id: uid(), dive: "DIVE-02", code: "W-003", type: "wood", diver: "张潜", reviewer: null,
+          depth: "18.2m", orientation: "西北", condition: "稳定", note: "疑似船体横梁",
+          x: 58, y: 39, stage: "registered", receiver: null, location: null, storedAt: null,
+          reg: { depth: "18.2m", orientation: "西北", condition: "稳定" },
+          revisions: [],
+          events: [{ at: minutesAgo(150), type: "register", by: "张潜", text: "出水登记完成" }]
+        },
+        {
+          id: uid(), dive: "DIVE-02", code: "M-009", type: "metal", diver: "林涛", reviewer: "李慎",
+          depth: "19.0m", orientation: "南偏西", condition: "轻微锈蚀", note: "凝结物包裹，疑似铁件",
+          x: 63, y: 55, stage: "stored", receiver: "王库", location: "甲库-03", storedAt: minutesAgo(60),
+          reg: { depth: "19.0m", orientation: "南偏西", condition: "轻微锈蚀" },
+          revisions: [],
+          events: [
+            { at: minutesAgo(170), type: "register", by: "林涛", text: "出水登记完成" },
+            { at: minutesAgo(120), type: "review", by: "李慎", text: "封存复核通过（数据无修改）" },
+            { at: minutesAgo(60), type: "store", by: "王库", text: "入库移交：甲库-03" }
+          ]
+        },
+        {
+          id: uid(), dive: "DIVE-03", code: "X-001", type: "unknown", diver: "林涛", reviewer: "李慎",
+          depth: "21.3m", orientation: "北", condition: "严重酥解（去稳定化后）", note: "入库后实验室观察更新",
+          x: 35, y: 60, stage: "reviewed", receiver: null, location: null, storedAt: null,
+          reg: { depth: "21.3m", orientation: "北", condition: "表层硬结" },
+          revisions: [
+            { id: uid(), createdAt: minutesAgo(25), createdBy: "李慎", reason: "入库后复查发现保存状态恶化",
+              base: { depth: "21.3m", orientation: "北", condition: "表层硬结" },
+              patch: { depth: "21.3m", orientation: "北", condition: "严重酥解（去稳定化后）" },
+              status: "pending", decidedAt: null, decidedBy: null }
+          ],
+          events: [
+            { at: minutesAgo(400), type: "register", by: "林涛", text: "出水登记完成" },
+            { at: minutesAgo(380), type: "review", by: "李慎", text: "封存复核通过（数据无修改）" },
+            { at: minutesAgo(300), type: "store", by: "王库", text: "入库移交：乙库-11" },
+            { at: minutesAgo(25), type: "unstore", by: "李慎", text: "入库后发起修订，原入库移交（乙库-11，接收人王库）失效，记录回到待复核" }
+          ]
+        }
+      ];
+    }
+
+    /* ========== 状态推导（唯一事实来源） ========== */
+    const pendingRev = s => s.revisions.find(r => r.status === "pending") || null;
+    const hasPending = s => !!pendingRev(s);
+    const statusOf = s => hasPending(s) ? "pending" : s.stage;
+    const wasInvalidated = s => s.events.some(e => e.type === "unstore") && hasPending(s);
+    const logEvent = (s, type, by, text) => s.events.push({ at: nowIso(), type, by: by || "", text });
+    const selected = () => samples.find(s => s.id === ui.selectedId) || null;
+
+    /* 筛选 / 地图标记 / 时间线 / 导出全部共用此结果，保证刷新与导出一致 */
+    function visibleSamples() {
+      const t = $("#filterType").value, st = $("#filterStage").value,
+            dv = $("#filterDive").value, q = $("#search").value.trim().toLowerCase();
+      return samples.filter(s => {
+        if (t && s.type !== t) return false;
+        if (st && statusOf(s) !== st) return false;
+        if (dv && s.dive !== dv) return false;
+        if (q && ![s.code, s.diver, s.reviewer, s.receiver, s.location, s.note, s.depth, s.condition]
+          .some(v => String(v ?? "").toLowerCase().includes(q))) return false;
+        return true;
+      }).sort((a, b) => a.dive === b.dive ? a.code.localeCompare(b.code) : a.dive.localeCompare(b.dive));
+    }
+
+    /* ========== 渲染 ========== */
+    const map = $("#map");
     for (let i = 0; i < 7; i++) {
       const rib = document.createElement("div");
       rib.className = "rib";
       rib.style.left = 28 + i * 7 + "%";
       map.appendChild(rib);
     }
-    function save() { localStorage.setItem("zfl30Marks", JSON.stringify(marks)); }
+
+    function statusPill(s) {
+      const [label, cls] = STAGE_META[statusOf(s)];
+      let html = `<span class="pill ${cls}">${label}</span>`;
+      if (wasInvalidated(s)) html += ` <span class="pill st-pending">入库已失效·回落</span>`;
+      else if (s.stage === "reviewed" && s.events.some(e => e.type === "unstore") && !hasPending(s))
+        html += ` <span class="pill st-reviewed">曾入库·需重新移交</span>`;
+      return html;
+    }
+
     function render() {
+      const data = visibleSamples();
+
       map.querySelectorAll(".marker").forEach(el => el.remove());
-      const filtered = filter.value ? marks.filter(m => m.type === filter.value) : marks;
-      filtered.forEach(mark => {
+      data.forEach(s => {
         const el = document.createElement("button");
-        el.className = "marker " + mark.type + (mark.id === form.id.value ? " selected" : "");
-        el.style.left = mark.x + "%";
-        el.style.top = mark.y + "%";
-        el.textContent = mark.code.slice(0, 2);
-        el.onclick = event => { event.stopPropagation(); edit(mark.id); };
+        el.type = "button";
+        el.className = `marker ${s.type} stage-${statusOf(s)}${s.id === ui.selectedId ? " selected" : ""}`;
+        el.style.left = s.x + "%";
+        el.style.top = s.y + "%";
+        el.textContent = s.code.slice(0, 2);
+        el.title = `${s.dive} / ${s.code} · ${TYPE_NAMES[s.type]}`;
+        el.onclick = e => { e.stopPropagation(); selectSample(s.id); };
         map.appendChild(el);
       });
-      if (view.value === "timeline") renderTimeline(filtered);
-      else renderList(filtered);
+
+      const diveSel = $("#filterDive");
+      const currentDive = diveSel.value;
+      const dives = [...new Set(samples.map(s => s.dive))].sort();
+      diveSel.innerHTML = `<option value="">全部潜次</option>` + dives.map(d => `<option ${d === currentDive ? "selected" : ""}>${esc(d)}</option>`).join("");
+
+      $("#listTitle").textContent = $("#view").value === "timeline"
+        ? `潜次时间线（${data.length}件）` : `样本清单（${data.length}件）`;
+      if ($("#view").value === "timeline") renderTimeline(data);
+      else renderList(data);
+      renderWorkbench();
+      persistUi();
     }
+
+    function quickAction(s) {
+      const st = statusOf(s);
+      if (st === "pending") return `<button class="mini danger" data-act="decide">确认/驳回</button>`;
+      if (st === "registered") return `<button class="mini" data-act="review">封存复核</button>`;
+      if (st === "reviewed") return `<button class="mini ok" data-act="store">入库移交</button>`;
+      return `<button class="mini warn" data-act="revise">入库后修订</button>`;
+    }
+
     function renderList(data) {
-      listTitle.textContent = "标记列表";
+      const list = $("#list");
       list.className = "list";
-      list.innerHTML = data.map(m => '<div class="item '+(m.id===form.id.value?'active':'')+'" data-id="'+m.id+'"><b>'+m.code+'</b> <span class="pill">'+typeNames[m.type]+'</span><div class="muted">'+m.dive+' · '+m.depth+' · '+m.orientation+'</div><div>'+m.condition+'</div></div>').join("");
-      list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => edit(el.dataset.id));
+      if (!data.length) { list.innerHTML = `<div class="empty">没有符合筛选条件的样本</div>`; return; }
+      list.innerHTML = data.map(s => `
+        <div class="item ${s.id === ui.selectedId ? "active" : ""}" data-id="${s.id}">
+          <div class="row"><b class="mono">${esc(s.dive)} / ${esc(s.code)}</b>${quickAction(s)}</div>
+          <div style="margin:5px 0"><span class="pill">${TYPE_NAMES[s.type]}</span> ${statusPill(s)}</div>
+          <div class="muted">深度 ${esc(s.depth)} · 朝向 ${esc(s.orientation || "—")} · 潜水员 ${esc(s.diver)}${s.reviewer ? " · 复核人 " + esc(s.reviewer) : ""}</div>
+          <div class="muted">保存状态：${esc(s.condition || "—")}${s.location ? " · 库位 " + esc(s.location) : ""}</div>
+        </div>`).join("");
+      list.querySelectorAll("[data-id]").forEach(el => {
+        el.onclick = e => {
+          if (e.target.dataset.act) {
+            e.stopPropagation();
+            const s = samples.find(x => x.id === el.dataset.id);
+            const act = e.target.dataset.act;
+            if (act === "review") openReview(s);
+            else if (act === "store") openStore(s);
+            else if (act === "revise") openPostStoreRevision(s);
+            else selectSample(s.id);
+          } else selectSample(el.dataset.id);
+        };
+      });
     }
+
     function renderTimeline(data) {
-      listTitle.textContent = "潜次时间线";
+      const list = $("#list");
       list.className = "timeline";
-      const groups = data.reduce((map, item) => ((map[item.dive] ||= []).push(item), map), {});
-      list.innerHTML = Object.entries(groups).map(([dive, items]) => '<div class="item"><b>'+dive+'</b><div class="muted">新增'+items.length+'个标记</div>'+items.map(i => '<div>'+i.code+' · '+typeNames[i.type]+'</div>').join("")+'</div>').join("");
+      if (!data.length) { list.innerHTML = `<div class="empty">没有符合筛选条件的样本</div>`; return; }
+      const groups = {};
+      data.forEach(s => (groups[s.dive] ||= []).push(s));
+      list.innerHTML = Object.keys(groups).sort().map(dive => {
+        const items = groups[dive];
+        const cnt = { registered: 0, reviewed: 0, stored: 0, pending: 0 };
+        items.forEach(s => cnt[statusOf(s)]++);
+        // 旧版修订不单独成条，严格跟随原潜次，绝不混入其他潜次清单
+        const revs = items.reduce((n, s) => n + s.revisions.length, 0);
+        return `<div class="item">
+          <div class="row"><b class="mono">${esc(dive)}</b><span class="muted">${items.length}件 · 修订记录${revs}条</span></div>
+          <div class="muted" style="margin:4px 0">待复核${cnt.registered} · 待入库${cnt.reviewed} · 已入库${cnt.stored} · 待确认修订${cnt.pending}</div>
+          ${items.map(s => `<div class="row" style="padding:3px 0;cursor:pointer" data-id="${s.id}">
+            <span><b class="mono">${esc(s.code)}</b> ${esc(TYPE_NAMES[s.type])} · ${esc(s.depth)} · ${esc(s.condition || "—")}</span>
+            ${statusPill(s)}
+          </div>`).join("")}
+        </div>`;
+      }).join("");
+      list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => selectSample(el.dataset.id));
     }
-    function edit(id) {
-      const mark = marks.find(m => m.id === id);
-      if (!mark) return;
-      for (const [key, value] of Object.entries(mark)) if (form[key]) form[key].value = value;
-      pending = { x: mark.x, y: mark.y };
-      render();
+
+    function revisionCard(s, r, idx) {
+      const diff = ["depth", "orientation", "condition"]
+        .filter(k => r.patch[k] !== r.base[k])
+        .map(k => {
+          const label = { depth: "深度", orientation: "朝向", condition: "保存状态" }[k];
+          const arrow = r.status === "pending"
+            ? `<span class="old">${esc(r.base[k] || "—")}</span> → <span class="new">${esc(r.patch[k])}</span>`
+            : `${esc(r.base[k] || "—")} → ${esc(r.patch[k])}`;
+          return `<div>${label}：${arrow}</div>`;
+        }).join("");
+      const tag = { pending: ["待确认", "st-pending"], confirmed: ["已确认", "st-stored"], rejected: ["已驳回", "st-registered"] }[r.status];
+      const actions = r.status === "pending"
+        ? `<div class="actions" style="margin-bottom:0">
+             <button class="mini ok" data-decide="confirmed">确认修订</button>
+             <button class="mini secondary" data-decide="rejected">驳回修订</button>
+           </div>`
+        : `<div class="muted">${r.status === "confirmed" ? "确认" : "驳回"}人：${esc(r.decidedBy || "—")} · ${fmt(r.decidedAt)}</div>`;
+      return `<div class="rev ${r.status === "pending" ? "pending" : ""}">
+        <div class="row"><b>修订 #${idx}</b> <span class="pill ${tag[1]}">${tag[0]}</span></div>
+        ${diff}
+        <div class="muted">复核人 ${esc(r.createdBy)} 于 ${fmt(r.createdAt)} 提出${r.reason ? " · 原因：" + esc(r.reason) : ""}</div>
+        ${actions}
+      </div>`;
     }
+
+    function renderWorkbench() {
+      const box = $("#workbench");
+      const s = selected();
+      if (!s) {
+        box.innerHTML = `<h2>样本工作台</h2><div class="empty">在地图或清单中选择一件样本办理移交手续；<br>也可以点击地图空白处直接登记出水样本。</div>`;
+        return;
+      }
+      const st = statusOf(s);
+      const actions = `
+        <div class="actions">
+          ${st === "registered" ? `<button data-go="review">办理封存复核</button>` : ""}
+          ${st === "reviewed" ? `<button class="ok" data-go="store">办理入库移交</button>` : ""}
+          ${st === "stored" ? `<button class="warn" data-go="revise">入库后发起修订</button>` : ""}
+          ${st === "pending" ? `
+            <button class="ok" data-go="confirm">确认修订</button>
+            <button class="secondary" data-go="reject">驳回修订</button>` : ""}
+          <button class="secondary" data-go="versions">查看全部版本与记录</button>
+        </div>`;
+      box.innerHTML = `
+        <div class="row" style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0"><span class="mono">${esc(s.dive)} / ${esc(s.code)}</span></h2>
+          ${statusPill(s)}
+        </div>
+        ${wasInvalidated(s) ? `<div class="muted" style="margin-top:6px;color:#8a2424">该样本已入库，因再修订导致入库移交失效，需重新完成入库移交；旧版数据仍可查。</div>` : ""}
+        <dl class="kv">
+          <dt>类型</dt><dd>${esc(TYPE_NAMES[s.type])}</dd>
+          <dt>深度</dt><dd>${esc(s.depth)}</dd>
+          <dt>朝向</dt><dd>${esc(s.orientation || "—")}</dd>
+          <dt>保存状态</dt><dd>${esc(s.condition || "—")}</dd>
+          <dt>潜水员</dt><dd>${esc(s.diver)}（登记时不可与复核人为同一人）</dd>
+          <dt>复核人</dt><dd>${esc(s.reviewer || "尚未复核")}</dd>
+          <dt>入库信息</dt><dd>${s.location ? `库位 ${esc(s.location)} · 接收人 ${esc(s.receiver)} · ${fmt(s.storedAt)}` : "尚未入库（或已因修订失效）"}</dd>
+          <dt>备注</dt><dd>${esc(s.note || "—")}</dd>
+        </dl>
+        ${actions}
+        <h3>修订记录${s.revisions.length ? `（${s.revisions.length}）` : ""}</h3>
+        ${s.revisions.length ? s.revisions.map((r, i) => revisionCard(s, r, i + 1)).join("") : `<div class="muted">暂无修订。仅深度、朝向、保存状态的修改会生成修订。</div>`}
+        <h3>最近动态</h3>
+        <div class="events">${s.events.slice(-5).reverse().map(e =>
+          `<div><span class="muted mono">${fmt(e.at)}</span> ${esc(e.by ? "[" + e.by + "] " : "")}${esc(e.text)}</div>`).join("")}
+        </div>`;
+
+      box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => {
+        const act = b.dataset.go;
+        if (act === "review") openReview(s);
+        else if (act === "store") openStore(s);
+        else if (act === "revise") openPostStoreRevision(s);
+        else if (act === "confirm") decideRevision(s, "confirmed");
+        else if (act === "reject") decideRevision(s, "rejected");
+        else if (act === "versions") openVersions(s);
+      });
+      box.querySelectorAll("[data-decide]").forEach(b => b.onclick = () => decideRevision(s, b.dataset.decide));
+    }
+
+    function selectSample(id) { ui.selectedId = id; render(); }
+
+    /* ========== 通用模态框 ========== */
+    function openModal(title, bodyHtml, onOk, okText = "提交") {
+      $("#modalTitle").textContent = title;
+      $("#modalBody").innerHTML = bodyHtml;
+      $("#modal").classList.add("open");
+      $("#modalOk").textContent = okText;
+      const okBtn = $("#modalOk"), cancelBtn = $("#modalCancel");
+      const close = () => { $("#modal").classList.remove("open"); okBtn.onclick = null; cancelBtn.onclick = null; };
+      okBtn.onclick = () => { if (onOk($("#modalBody")) !== false) close(); };
+      cancelBtn.onclick = close;
+      return close;
+    }
+    $("#modal").addEventListener("click", e => { if (e.target.id === "modal") $("#modal").classList.remove("open"); });
+
+    const roLine = (k, v) => `<div class="roline"><span>${k}</span><b>${esc(v)}</b></div>`;
+
+    /* ========== 阶段一：出水登记 ========== */
+    function openRegister() {
+      const nextCode = "M-" + String(samples.length + 1).padStart(3, "0");
+      const body = `
+        <label>潜次 *</label><input id="f-dive" placeholder="例如 DIVE-04" value="DIVE-01" required>
+        <label>样本编号 *（同一潜次内唯一，登记后不可改）</label><input id="f-code" value="${nextCode}" required>
+        <label>类型 *</label>
+        <select id="f-type"><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><label>深度 *</label><input id="f-depth" placeholder="18.4m" required></div>
+          <div><label>朝向</label><input id="f-orientation" placeholder="东北偏北"></div>
+          <div><label>保存状态</label><input id="f-condition" placeholder="表面附着贝类"></div>
+        </div>
+        <label>潜水员 *</label><input id="f-diver" value="${esc($("#operator").value || "")}" required>
+        <label>备注</label><textarea id="f-note"></textarea>`;
+      openModal("出水登记（第 1 步 / 共 3 步）", body, root => {
+        const get = id => root.querySelector("#" + id).value.trim();
+        const dive = get("f-dive"), code = get("f-code");
+        if (!dive || !code || !get("f-depth") || !get("f-diver")) { toast("请填写带 * 的必填项", "err"); return false; }
+        if (samples.some(s => s.dive === dive && s.code === code)) {
+          toast(`样本 ${dive} / ${code} 已存在：潜次+编号必须唯一`, "err"); return false;
+        }
+        const values = { depth: get("f-depth"), orientation: get("f-orientation"), condition: get("f-condition") };
+        const s = {
+          id: uid(), dive, code, type: root.querySelector("#f-type").value,
+          diver: get("f-diver"), reviewer: null, ...values, note: get("f-note"),
+          x: pendingPos ? pendingPos.x : 50, y: pendingPos ? pendingPos.y : 50,
+          stage: "registered", receiver: null, location: null, storedAt: null,
+          reg: { ...values }, revisions: [], events: []
+        };
+        logEvent(s, "register", s.diver, "出水登记完成");
+        samples.push(s);
+        pendingPos = null;
+        ui.selectedId = s.id;
+        persist(); render();
+        toast("已登记，进入「待封存复核」", "ok");
+      }, "完成出水登记");
+    }
+
+    /* ========== 阶段二：封存复核（可生成待复核修订） ========== */
+    function reviewBody(s, title) {
+      return `
+        ${roLine("样本", `${s.dive} / ${s.code}`)}
+        ${roLine("潜水员", s.diver)}
+        <div class="muted" style="margin:6px 0">仅可修改深度、朝向、保存状态；任一字段修改都会保留旧版并生成一条待复核修订。</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><label>深度</label><input id="r-depth" value="${esc(s.depth)}"></div>
+          <div><label>朝向</label><input id="r-orientation" value="${esc(s.orientation || "")}"></div>
+          <div><label>保存状态</label><input id="r-condition" value="${esc(s.condition || "")}"></div>
+        </div>
+        <label>复核人 *（不得与潜水员相同）</label><input id="r-reviewer" value="${esc($("#operator").value || "")}" required>
+        <label>修改原因${title.includes("入库后") ? " *" : ""}</label><input id="r-reason" placeholder="例如：复测校正 / 实验室复查">`;
+    }
+
+    function readRevision(root, s) {
+      const get = id => root.querySelector("#" + id).value.trim();
+      const reviewer = get("r-reviewer");
+      if (!reviewer) { toast("请填写复核人", "err"); return null; }
+      if (reviewer === s.diver) { toast("复核人与潜水员不得为同一人", "err"); return null; }
+      const patch = { depth: get("r-depth"), orientation: get("r-orientation"), condition: get("r-condition") };
+      if (!patch.depth) { toast("深度不能为空", "err"); return null; }
+      const changed = ["depth", "orientation", "condition"].filter(k => patch[k] !== (s[k] || ""));
+      return { reviewer, patch, changed, reason: get("r-reason") };
+    }
+
+    function openReview(s) {
+      if (s.stage !== "registered" || hasPending(s)) { toast("当前状态不能办理封存复核（流程不可跳步）", "err"); return; }
+      openModal("封存复核（第 2 步 / 共 3 步）", reviewBody(s, "封存复核"), root => {
+        const r = readRevision(root, s);
+        if (!r) return false;
+        s.reviewer = r.reviewer;
+        if (!r.changed.length) {
+          s.stage = "reviewed";
+          logEvent(s, "review", r.reviewer, "封存复核通过（深度/朝向/保存状态无修改）");
+          toast("复核通过，进入「待入库移交」", "ok");
+        } else {
+          // 同一记录同时只允许一条待确认修订
+          if (hasPending(s)) { toast("已有一条待确认修订，请先处理", "err"); return false; }
+          s.revisions.push({
+            id: uid(), createdAt: nowIso(), createdBy: r.reviewer, reason: r.reason,
+            base: { depth: s.depth, orientation: s.orientation, condition: s.condition },
+            patch: r.patch, status: "pending", decidedAt: null, decidedBy: null
+          });
+          logEvent(s, "review", r.reviewer, `封存复核：修改了${r.changed.map(k => ({ depth: "深度", orientation: "朝向", condition: "保存状态" }[k])).join("、")}，生成待复核修订`);
+          toast("已生成待复核修订，确认前不生效", "ok");
+        }
+        persist(); render();
+      }, "提交复核");
+    }
+
+    /* 幂等确认：重复操作一律沿用首次结果 */
+    function decideRevision(s, decision) {
+      const r = pendingRev(s);
+      if (!r) { toast("该修订已处理，结果以首次确认为准", "err"); render(); return; }
+      const by = $("#operator").value.trim();
+      r.status = decision;
+      r.decidedAt = nowIso();
+      r.decidedBy = by || r.createdBy;
+      if (decision === "confirmed") {
+        Object.assign(s, r.patch);
+        logEvent(s, "confirm", r.decidedBy, "修订确认通过，新数据生效");
+        toast("修订已确认", "ok");
+      } else {
+        logEvent(s, "reject", r.decidedBy, "修订被驳回，沿用旧版数据");
+        toast("修订已驳回，沿用旧版", "ok");
+      }
+      // 复核阶段产生的修订处理完 -> 封存复核完成；入库失效回落产生的修订处理完 -> 停在待入库，需重新移交
+      if (s.stage === "registered") s.stage = "reviewed";
+      persist(); render();
+    }
+
+    /* ========== 阶段三：入库移交 ========== */
+    function openStore(s) {
+      if (s.stage !== "reviewed" || hasPending(s)) { toast("须先完成封存复核且无待确认修订，才能入库移交", "err"); return; }
+      const body = `
+        ${roLine("样本", `${s.dive} / ${s.code}`)}
+        ${roLine("复核人", s.reviewer)}
+        ${roLine("当前保存状态", s.condition || "—")}
+        <label>接收人 *</label><input id="h-receiver" value="${esc($("#operator").value || "")}" required>
+        <label>库位编号 *</label><input id="h-location" placeholder="例如 甲库-03" required>`;
+      openModal("入库移交（第 3 步 / 共 3 步）", body, root => {
+        const receiver = root.querySelector("#h-receiver").value.trim();
+        const location = root.querySelector("#h-location").value.trim();
+        if (!receiver || !location) { toast("请填写接收人与库位编号", "err"); return false; }
+        s.stage = "stored";
+        s.receiver = receiver; s.location = location; s.storedAt = nowIso();
+        logEvent(s, "store", receiver, `入库移交：${location}`);
+        persist(); render();
+        toast("入库移交完成", "ok");
+      }, "确认移交入库");
+    }
+
+    /* ========== 入库后再修订：入库失效、回到待复核 ========== */
+    function openPostStoreRevision(s) {
+      if (s.stage !== "stored" || hasPending(s)) { toast("仅已入库样本可发起入库后修订", "err"); return; }
+      openModal("入库后修订（原入库移交将失效）", reviewBody(s, "入库后修订"), root => {
+        const r = readRevision(root, s);
+        if (!r) return false;
+        if (!r.changed.length) { toast("未检测到深度/朝向/保存状态的修改，无需发起修订", "err"); return false; }
+        if (!r.reason) { toast("入库后修订必须填写修改原因", "err"); return false; }
+        if (hasPending(s)) { toast("已有一条待确认修订，请先处理", "err"); return false; }
+        const oldLoc = s.location, oldReceiver = s.receiver, oldAt = s.storedAt;
+        s.revisions.push({
+          id: uid(), createdAt: nowIso(), createdBy: r.reviewer, reason: r.reason,
+          base: { depth: s.depth, orientation: s.orientation, condition: s.condition },
+          patch: r.patch, status: "pending", decidedAt: null, decidedBy: null
+        });
+        // 入库失效并回到待复核；旧版与旧入库信息仍保留在修订快照与事件记录中
+        s.stage = "reviewed";
+        s.reviewer = r.reviewer;
+        s.location = null; s.receiver = null; s.storedAt = null;
+        logEvent(s, "unstore", r.reviewer, `入库后发起修订（${r.changed.map(k => ({ depth: "深度", orientation: "朝向", condition: "保存状态" }[k])).join("、")}），原入库移交（库位 ${oldLoc}，接收人 ${oldReceiver}，${fmt(oldAt)}）失效，记录回到待复核`);
+        persist(); render();
+        toast("原入库移交已失效，记录回到待复核", "ok");
+      }, "发起修订");
+    }
+
+    /* ========== 版本与全量记录 ========== */
+    function openVersions(s) {
+      const lastConfirmed = s.revisions.reduce((last, r, i) => r.status === "confirmed" ? i : last, -1);
+      let versions = `<div class="ver ${lastConfirmed === -1 ? "current" : ""}"><b>v0 · 出水登记版本</b> <span class="muted">${fmt(s.events[0].at)} · ${esc(s.diver)}</span>
+        <div>深度 ${esc(s.reg.depth)} · 朝向 ${esc(s.reg.orientation || "—")} · 保存状态 ${esc(s.reg.condition || "—")}</div></div>`;
+      s.revisions.forEach((r, i) => {
+        const tag = { pending: ["待确认", "st-pending"], confirmed: ["已确认", "st-stored"], rejected: ["已驳回（旧版保留）", "st-registered"] }[r.status];
+        versions += `<div class="ver ${i === lastConfirmed ? "current" : ""}">
+          <div class="row"><b>修订 #${i + 1}</b><span class="pill ${tag[1]}">${tag[0]}</span></div>
+          <div>深度 ${esc(r.base.depth)} → ${esc(r.patch.depth)}</div>
+          <div>朝向 ${esc(r.base.orientation || "—")} → ${esc(r.patch.orientation || "—")}</div>
+          <div>保存状态 ${esc(r.base.condition || "—")} → ${esc(r.patch.condition || "—")}</div>
+          <div class="muted">复核人 ${esc(r.createdBy)} · ${fmt(r.createdAt)}${r.decidedAt ? ` · ${r.status === "confirmed" ? "确认" : "驳回"}人 ${esc(r.decidedBy)} · ${fmt(r.decidedAt)}` : ""}${r.reason ? "<br>原因：" + esc(r.reason) : ""}</div>
+        </div>`;
+      });
+      const body = `
+        ${roLine("样本", `${s.dive} / ${s.code}（潜次+编号固定，旧版不会进入其他潜次清单）`)}
+        <h3>数据版本</h3>${versions}
+        <h3>完整流转记录</h3>
+        <div class="events">${s.events.slice().reverse().map(e =>
+          `<div><span class="muted mono">${fmt(e.at)}</span> ${esc(e.by ? "[" + e.by + "] " : "")}${esc(e.text)}</div>`).join("")}</div>`;
+      openModal("版本与流转记录", body, () => true, "关闭");
+      $("#modalCancel").style.display = "none";
+      // 恢复取消按钮（下次开框默认显示）
+      const obs = setInterval(() => { if (!$("#modal").classList.contains("open")) { $("#modalCancel").style.display = ""; clearInterval(obs); } }, 300);
+    }
+
+    /* ========== 导出（与筛选结果严格一致） ========== */
+    $("#exportBtn").onclick = () => {
+      const data = visibleSamples();
+      const payload = {
+        exportedAt: nowIso(),
+        filters: { type: $("#filterType").value, stage: $("#filterStage").value, dive: $("#filterDive").value, keyword: $("#search").value.trim() },
+        total: samples.length, matched: data.length,
+        samples: data
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      const d = new Date(), p = n => String(n).padStart(2, "0");
+      a.href = URL.createObjectURL(blob);
+      a.download = `样本移交-${$("#filterDive").value || "全部潜次"}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.json`;
+      a.click(); URL.revokeObjectURL(a.href);
+      toast(`已导出当前筛选结果 ${data.length} 件（共 ${samples.length} 件）`, "ok");
+    };
+
+    /* ========== 事件绑定 ========== */
+    $("#newBtn").onclick = () => { pendingPos = null; openRegister(); };
     map.addEventListener("click", event => {
       const rect = map.getBoundingClientRect();
-      pending = { x: Number(((event.clientX - rect.left) / rect.width * 100).toFixed(2)), y: Number(((event.clientY - rect.top) / rect.height * 100).toFixed(2)) };
-      form.reset();
-      form.id.value = "";
-      form.code.value = "M-" + String(marks.length + 1).padStart(3, "0");
-      form.dive.value = "DIVE-01";
-      render();
+      pendingPos = {
+        x: Number(((event.clientX - rect.left) / rect.width * 100).toFixed(2)),
+        y: Number(((event.clientY - rect.top) / rect.height * 100).toFixed(2))
+      };
+      openRegister();
     });
-    form.onsubmit = event => {
-      event.preventDefault();
-      if (!pending) pending = { x: 50, y: 50 };
-      const data = Object.fromEntries(new FormData(form).entries());
-      if (data.id) Object.assign(marks.find(m => m.id === data.id), data, pending);
-      else marks.push({ ...data, id: crypto.randomUUID(), ...pending });
-      save(); render();
-    };
-    document.querySelector("#deleteBtn").onclick = () => {
-      if (!form.id.value) return;
-      marks = marks.filter(m => m.id !== form.id.value);
-      form.reset(); pending = null; save(); render();
-    };
-    document.querySelector("#exportBtn").onclick = () => {
-      const blob = new Blob([JSON.stringify(marks, null, 2)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = "dive-marks.json"; a.click(); URL.revokeObjectURL(a.href);
-    };
-    filter.onchange = render; view.onchange = render;
+    ["#filterType", "#filterStage", "#filterDive", "#view", "#search", "#operator"].forEach(sel => {
+      $(sel).addEventListener("change", render);
+      $(sel).addEventListener("input", render);
+    });
+
+    /* 恢复刷新前的筛选/视图/操作人/选中项 */
+    $("#filterType").value = ui.filterType || "";
+    $("#filterStage").value = ui.filterStage || "";
+    $("#view").value = ui.view || "list";
+    $("#search").value = ui.q || "";
+    $("#operator").value = ui.operator || "";
+    if (ui.selectedId && !samples.some(s => s.id === ui.selectedId)) ui.selectedId = "";
     render();
   </script>
 </body>
