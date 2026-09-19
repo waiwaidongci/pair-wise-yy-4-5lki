@@ -3,151 +3,632 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>水下考古潜水记录</title>
+  <title>水下考古样本移交台</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Arial, "PingFang SC", sans-serif; background: #e8f2f3; color: #183035; }
     header { padding: 18px 24px; background: #fff; border-bottom: 1px solid #c9dadc; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
     h1 { margin: 0; font-size: 26px; }
-    button { border: 0; border-radius: 8px; padding: 10px 13px; background: #1d6c78; color: #fff; font-weight: 800; cursor: pointer; }
+    h2 { font-size: 16px; margin: 14px 0 8px; }
+    h3 { font-size: 13px; margin: 12px 0 6px; color: #5c7378; }
+    button { border: 0; border-radius: 8px; padding: 9px 13px; background: #1d6c78; color: #fff; font-weight: 800; cursor: pointer; }
+    button:hover { background: #175862; }
     button.secondary { background: #64777b; }
+    button.danger { background: #a24b3b; }
+    button:disabled { background: #9fb4b7; cursor: not-allowed; }
     input, select, textarea { width: 100%; border: 1px solid #c9dadc; border-radius: 6px; padding: 9px; font: inherit; background: #fff; }
-    textarea { min-height: 64px; }
+    textarea { min-height: 54px; }
     label { display: block; margin: 9px 0 5px; color: #5c7378; font-size: 13px; }
-    .app { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px; }
+    .app { display: grid; grid-template-columns: 1fr 400px; gap: 16px; padding: 16px; align-items: start; }
     .panel { background: #fff; border: 1px solid #c9dadc; border-radius: 8px; padding: 14px; }
-    .map { position: relative; height: calc(100vh - 128px); min-height: 560px; overflow: hidden; background: radial-gradient(circle at 30% 20%, #5fa8b1, #0f5262 55%, #07333f); border-radius: 8px; border: 1px solid #0c4451; cursor: crosshair; }
+    .mapwrap { position: sticky; top: 16px; }
+    .map { position: relative; height: calc(100vh - 150px); min-height: 560px; overflow: hidden; background: radial-gradient(circle at 30% 20%, #5fa8b1, #0f5262 55%, #07333f); border-radius: 8px; border: 1px solid #0c4451; cursor: crosshair; }
     .wreck { position: absolute; left: 24%; top: 28%; width: 52%; height: 31%; border: 3px solid rgba(220,235,224,.55); border-radius: 48% 44% 42% 50%; transform: rotate(-9deg); }
     .rib { position: absolute; width: 2px; height: 36%; background: rgba(220,235,224,.35); top: 27%; transform: rotate(-9deg); }
-    .marker { position: absolute; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 800; transform: translate(-50%, -50%); border: 2px solid rgba(255,255,255,.7); box-shadow: 0 4px 12px rgba(0,0,0,.35); cursor: pointer; }
-    .marker.selected { outline: 4px solid rgba(255,234,124,.75); }
+    .marker { position: absolute; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 800; transform: translate(-50%, -50%); border: 2px solid rgba(255,255,255,.85); box-shadow: 0 4px 12px rgba(0,0,0,.35); cursor: pointer; padding: 0; }
+    .marker.selected { outline: 4px solid rgba(255,234,124,.8); }
+    .marker.stage-reviewed { border-color: #ffd76a; }
+    .marker.stage-stored { border-color: #7fe0a4; }
+    .marker.awaiting { animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,215,106,.7);} 50% { box-shadow: 0 0 0 8px rgba(255,215,106,0);} }
     .ceramic { background: #b56c38; } .wood { background: #6c4b2f; } .metal { background: #6e7880; } .unknown { background: #725ca6; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; font-size: 12px; color: #5c7378; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px #c9dadc; }
+    .dot.reviewed { box-shadow: 0 0 0 2px #ffd76a; }
+    .dot.stored { box-shadow: 0 0 0 2px #7fe0a4; }
     .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-    .list { display: grid; gap: 8px; max-height: 330px; overflow: auto; }
+    .toolbar.three { grid-template-columns: 1fr 1fr 1fr; }
+    .list { display: grid; gap: 8px; max-height: 320px; overflow: auto; }
+    .timeline { display: grid; gap: 10px; max-height: 640px; overflow: auto; }
     .item { border: 1px solid #d7e4e5; border-radius: 8px; padding: 10px; cursor: pointer; }
+    .item:hover { background: #f5fafa; }
     .item.active { border-color: #1d6c78; background: #eef8f9; }
-    .timeline { display: grid; gap: 8px; max-height: 240px; overflow: auto; }
-    .pill { display: inline-block; padding: 3px 8px; border: 1px solid #c9dadc; border-radius: 999px; font-size: 12px; }
+    .pill { display: inline-block; padding: 2px 8px; border: 1px solid #c9dadc; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+    .pill.registered { background: #eef3f4; }
+    .pill.reviewed { background: #fff6da; border-color: #e3c25b; color: #7a5b08; }
+    .pill.stored { background: #e4f7eb; border-color: #74c993; color: #1d6b3b; }
+    .pill.awaiting { background: #fdeede; border-color: #dd9a4e; color: #92501a; }
+    .pill.invalid { background: #fbe9e6; border-color: #cf8577; color: #8f3322; text-decoration: line-through; }
     .muted { color: #5c7378; font-size: 13px; }
-    @media (max-width: 980px) { header { display: block; } .app { grid-template-columns: 1fr; } .map { height: 560px; } }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .stepper { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0 4px; }
+    .step { border: 1px solid #c9dadc; border-radius: 8px; padding: 8px 6px; text-align: center; font-size: 12px; color: #5c7378; background: #f6fafa; position: relative; }
+    .step b { display: block; font-size: 13px; color: #183035; }
+    .step.done { background: #e4f7eb; border-color: #74c993; color: #1d6b3b; }
+    .step.current { background: #fff6da; border-color: #e3c25b; color: #7a5b08; }
+    .step.dead { background: #fbe9e6; border-color: #cf8577; color: #8f3322; }
+    .kv { display: grid; grid-template-columns: 76px 1fr; gap: 4px 8px; font-size: 13px; margin: 6px 0; }
+    .kv dt { color: #5c7378; } .kv dd { margin: 0; }
+    .card { border: 1px solid #dd9a4e; background: #fffaf1; border-radius: 8px; padding: 10px; margin: 10px 0; }
+    .card.locked { border-color: #9cb6ba; background: #f4f8f9; }
+    .card.version { border-color: #c9dadc; background: #fbfdfd; margin: 6px 0; padding: 8px 10px; }
+    .card.version.current { border-color: #1d6c78; background: #eef8f9; }
+    .diff { font-size: 13px; display: grid; gap: 3px; margin: 6px 0; }
+    .diff s { color: #a24b3b; } .diff i { font-style: normal; color: #1d6b3b; font-weight: 700; }
+    .history { font-size: 12px; color: #5c7378; border-left: 2px solid #c9dadc; padding-left: 10px; display: grid; gap: 5px; margin: 8px 0; }
+    .history div { position: relative; }
+    .history div::before { content: ""; position: absolute; left: -15px; top: 5px; width: 7px; height: 7px; border-radius: 50%; background: #64777b; }
+    details.box { border: 1px solid #c9dadc; border-radius: 8px; padding: 8px 10px; margin: 10px 0; }
+    details.box > summary { cursor: pointer; font-weight: 800; font-size: 13px; }
+    .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #183035; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 9; max-width: 80vw; }
+    .toast.show { opacity: .96; }
+    .toast.err { background: #8f3322; }
+    .side-scroll { max-height: calc(100vh - 140px); overflow: auto; padding-right: 4px; }
+    @media (max-width: 980px) { header { display: block; } .app { grid-template-columns: 1fr; } .mapwrap { position: static; } .map { height: 560px; } .side-scroll { max-height: none; } }
   </style>
 </head>
 <body>
   <header>
-    <div><h1>水下考古潜水记录</h1><div class="muted">点击沉船平面图添加标记，筛选、编辑并导出JSON。</div></div>
-    <button id="exportBtn">导出JSON</button>
+    <div><h1>水下考古样本移交台</h1><div class="muted">样本以「潜次 + 编号」唯一，依次经过出水登记 → 封存复核 → 入库移交，不可跳步。点击平面图设定出水点位。</div></div>
+    <button id="exportBtn">导出当前清单 JSON</button>
   </header>
   <main class="app">
-    <section class="panel">
+    <section class="panel mapwrap">
       <div class="map" id="map"><div class="wreck"></div></div>
+      <div class="legend">
+        <span><i class="dot ceramic"></i>陶片</span>
+        <span><i class="dot wood"></i>木构件</span>
+        <span><i class="dot metal"></i>金属件</span>
+        <span><i class="dot unknown"></i>未知物</span>
+        <span><i class="dot"></i>白圈：已登记</span>
+        <span><i class="dot reviewed"></i>黄圈：已复核</span>
+        <span><i class="dot stored"></i>绿圈：已入库</span>
+      </div>
     </section>
     <aside class="panel">
-      <div class="toolbar">
-        <select id="filter"><option value="">全部类型</option><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
-        <select id="view"><option value="list">标记列表</option><option value="timeline">潜次时间线</option></select>
+      <div class="toolbar three">
+        <select id="filterType"><option value="">全部类型</option><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
+        <select id="filterDive"><option value="">全部潜次</option></select>
+        <select id="view"><option value="list">样本清单</option><option value="timeline">移交时间线</option></select>
       </div>
-      <form id="form">
-        <h2>标记信息</h2>
-        <input name="id" type="hidden">
-        <label>编号</label><input name="code" required>
-        <label>类型</label><select name="type"><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
-        <label>潜次</label><input name="dive" placeholder="例如DIVE-04" required>
-        <label>深度</label><input name="depth" placeholder="例如18.4m" required>
-        <label>朝向</label><input name="orientation" placeholder="例如东北偏北">
-        <label>保存状态</label><input name="condition" placeholder="例如表面附着贝类">
-        <label>备注</label><textarea name="note"></textarea>
-        <div class="toolbar"><button>保存标记</button><button type="button" id="deleteBtn" class="secondary">删除</button></div>
-      </form>
-      <h2 id="listTitle">标记列表</h2>
-      <div id="list" class="list"></div>
+      <div class="side-scroll">
+        <details class="box" id="regBox">
+          <summary>＋ 新增出水登记</summary>
+          <form id="regForm">
+            <div class="toolbar">
+              <div><label>潜次</label><input name="dive" list="diveList" placeholder="例如 DIVE-03" required></div>
+              <div><label>编号</label><input name="code" placeholder="例如 A-017" required></div>
+            </div>
+            <datalist id="diveList"></datalist>
+            <div class="toolbar">
+              <div><label>类型</label><select name="type"><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select></div>
+              <div><label>潜水员</label><input name="diver" placeholder="出水登记人" required></div>
+            </div>
+            <label>深度</label><input name="depth" placeholder="例如 18.4m" required>
+            <label>朝向</label><input name="orientation" placeholder="例如 东北偏北">
+            <label>保存状态</label><input name="condition" placeholder="例如 表面附着贝类">
+            <label>备注</label><textarea name="note"></textarea>
+            <div class="muted" id="posHint">尚未在平面图选取出水点位。</div>
+            <div class="toolbar" style="margin-top:8px"><button>完成出水登记</button><button type="button" class="secondary" id="regCancel">收起</button></div>
+          </form>
+        </details>
+
+        <div id="detail"></div>
+
+        <h2 id="listTitle">样本清单</h2>
+        <div id="list" class="list"></div>
+      </div>
     </aside>
   </main>
+  <div class="toast" id="toast"></div>
   <script>
+    /* ========== 常量与存储 ========== */
+    const STORE_KEY = "archHandoverSamples.v1";
+    const PREF_KEY = "archHandoverPrefs.v1";
+    const STAGE_NAME = { registered: "出水登记", reviewed: "封存复核", stored: "入库移交" };
+    const TYPE_NAME = { ceramic: "陶片", wood: "木构件", metal: "金属件", unknown: "未知物" };
     const map = document.querySelector("#map");
-    const form = document.querySelector("#form");
-    const list = document.querySelector("#list");
-    const filter = document.querySelector("#filter");
-    const view = document.querySelector("#view");
+    const listEl = document.querySelector("#list");
+    const detailEl = document.querySelector("#detail");
     const listTitle = document.querySelector("#listTitle");
-    const typeNames = { ceramic: "陶片", wood: "木构件", metal: "金属件", unknown: "未知物" };
-    let marks = JSON.parse(localStorage.getItem("zfl30Marks") || "[]");
-    let pending = null;
-    if (!marks.length) {
-      marks = [
-        { id: crypto.randomUUID(), code: "A-017", type: "ceramic", dive: "DIVE-01", x: 42, y: 46, depth: "17.8m", orientation: "东", condition: "边缘残缺", note: "靠近船肋" },
-        { id: crypto.randomUUID(), code: "W-003", type: "wood", dive: "DIVE-02", x: 58, y: 39, depth: "18.2m", orientation: "西北", condition: "稳定", note: "疑似横梁" }
-      ];
-      save();
+    const filterType = document.querySelector("#filterType");
+    const filterDive = document.querySelector("#filterDive");
+    const viewSel = document.querySelector("#view");
+    const regBox = document.querySelector("#regBox");
+    const regForm = document.querySelector("#regForm");
+    const posHint = document.querySelector("#posHint");
+    const toastEl = document.querySelector("#toast");
+
+    let samples = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    let prefs = JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
+    let selectedId = null;
+    let pendingPos = null;
+    let toastTimer = null;
+
+    function now() { return Date.now(); }
+    function fmt(ts) {
+      const d = new Date(ts), p = n => String(n).padStart(2, "0");
+      return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
     }
+    function esc(v) { return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+    function saveSamples() { localStorage.setItem(STORE_KEY, JSON.stringify(samples)); }
+    function savePrefs() {
+      prefs = { type: filterType.value, dive: filterDive.value, view: viewSel.value };
+      localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
+    }
+    function toast(msg, isErr) {
+      toastEl.textContent = msg;
+      toastEl.className = "toast show" + (isErr ? " err" : "");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.className = "toast", 2600);
+    }
+    function log(s, text) { s.history.push({ at: now(), text }); }
+    function isAwaiting(s) { return !!(s.pending && !s.pending.decision); }
+
+    /* ========== 演示数据 ========== */
+    if (!samples) {
+      const t = now();
+      samples = [
+        {
+          id: crypto.randomUUID(), dive: "DIVE-01", code: "A-017", type: "ceramic",
+          diver: "陈志远", depth: "18.0m", orientation: "东偏南", condition: "边缘残缺，已脱水加固",
+          note: "靠近船肋，复核时修正深度与朝向。", x: 42, y: 46,
+          stage: "stored", reviewer: "林海澜", receiver: "周可仪",
+          registeredAt: t - 86400000 * 3, reviewedAt: t - 86400000 * 2, storedAt: t - 86400000,
+          pending: null, revisions: [],
+          versions: [
+            { v: 1, depth: "17.8m", orientation: "东", condition: "边缘残缺", at: t - 86400000 * 3, by: "陈志远", reason: "出水登记" },
+            { v: 2, depth: "18.0m", orientation: "东偏南", condition: "边缘残缺，已脱水加固", at: t - 86400000 * 2, by: "林海澜", reason: "封存复核修订" }
+          ],
+          history: [
+            { at: t - 86400000 * 3, text: "出水登记（潜水员：陈志远）" },
+            { at: t - 86400000 * 2, text: "封存复核完成（复核人：林海澜），提出深度/朝向/保存状态修订" },
+            { at: t - 86400000 * 2 + 600000, text: "修订确认通过（确认人：周可仪），旧版 v1 保留" },
+            { at: t - 86400000, text: "入库移交（接收人：周可仪）" }
+          ]
+        },
+        {
+          id: crypto.randomUUID(), dive: "DIVE-02", code: "W-003", type: "wood",
+          diver: "赵启明", depth: "18.2m", orientation: "西北", condition: "稳定",
+          note: "疑似横梁，复核人建议改写保存状态。", x: 58, y: 39,
+          stage: "reviewed", reviewer: "苏映雪", receiver: null,
+          registeredAt: t - 86400000, reviewedAt: t - 3600000, storedAt: null,
+          pending: {
+            id: crypto.randomUUID(),
+            changes: { condition: "稳定，表面有菌丝，建议冷藏" },
+            old: { depth: "18.2m", orientation: "西北", condition: "稳定" },
+            by: "苏映雪", at: t - 3600000, decision: null, decidedBy: null, decidedAt: null
+          },
+          revisions: [],
+          versions: [
+            { v: 1, depth: "18.2m", orientation: "西北", condition: "稳定", at: t - 86400000, by: "赵启明", reason: "出水登记" }
+          ],
+          history: [
+            { at: t - 86400000, text: "出水登记（潜水员：赵启明）" },
+            { at: t - 3600000, text: "封存复核完成（复核人：苏映雪），提出保存状态修订，待确认" }
+          ]
+        },
+        {
+          id: crypto.randomUUID(), dive: "DIVE-02", code: "M-008", type: "metal",
+          diver: "赵启明", depth: "19.0m", orientation: "北", condition: "锈蚀结壳",
+          note: "", x: 35, y: 58,
+          stage: "registered", reviewer: null, receiver: null,
+          registeredAt: t - 7200000, reviewedAt: null, storedAt: null,
+          pending: null, revisions: [],
+          versions: [
+            { v: 1, depth: "19.0m", orientation: "北", condition: "锈蚀结壳", at: t - 7200000, by: "赵启明", reason: "出水登记" }
+          ],
+          history: [{ at: t - 7200000, text: "出水登记（潜水员：赵启明）" }]
+        }
+      ];
+      saveSamples();
+    }
+    if (prefs && prefs.type) filterType.value = prefs.type;
+    if (prefs && prefs.dive) filterDive.value = prefs.dive;
+    viewSel.value = (prefs && prefs.view) || "list";
+
     for (let i = 0; i < 7; i++) {
       const rib = document.createElement("div");
       rib.className = "rib";
       rib.style.left = 28 + i * 7 + "%";
       map.appendChild(rib);
     }
-    function save() { localStorage.setItem("zfl30Marks", JSON.stringify(marks)); }
-    function render() {
+
+    /* ========== 业务规则 ========== */
+    // 样本以「潜次 + 编号」唯一
+    function findByDiveCode(dive, code, exceptId) {
+      return samples.find(s => s.dive === dive.trim() && s.code === code.trim() && s.id !== exceptId);
+    }
+    // 收集对深度/朝向/保存状态的修改；无变化返回 null
+    function collectChanges(s, depth, orientation, condition) {
+      const changes = {};
+      if (depth.trim() && depth.trim() !== s.depth) changes.depth = depth.trim();
+      if (orientation.trim() && orientation.trim() !== s.orientation) changes.orientation = orientation.trim();
+      if (condition.trim() && condition.trim() !== s.condition) changes.condition = condition.trim();
+      return Object.keys(changes).length ? changes : null;
+    }
+    // 封存复核：可附深度/朝向/保存状态修订；潜水员与复核人不得相同；不可跳步由按钮入口保证
+    function doReview(id, reviewer, depth, orientation, condition) {
+      const s = samples.find(x => x.id === id);
+      if (!s || s.stage !== "registered") return toast("该样本当前状态不能复核，不能跳步。", true);
+      reviewer = reviewer.trim();
+      if (!reviewer) return toast("请填写复核人。", true);
+      if (reviewer === s.diver) return toast("潜水员与复核人不得相同。", true);
+      const changes = collectChanges(s, depth, orientation, condition);
+      s.reviewer = reviewer;
+      s.reviewedAt = now();
+      s.stage = "reviewed";
+      if (changes) {
+        s.pending = {
+          id: crypto.randomUUID(), changes,
+          old: { depth: s.depth, orientation: s.orientation, condition: s.condition },
+          by: reviewer, at: now(), decision: null, decidedBy: null, decidedAt: null
+        };
+        log(s, `封存复核完成（复核人：${reviewer}），提出${changeLabels(changes)}修订，待确认`);
+        toast("已封存，并生成一条待确认修订。");
+      } else {
+        log(s, `封存复核完成（复核人：${reviewer}）`);
+        toast("封存复核完成。");
+      }
+      saveSamples(); render();
+    }
+    // 确认/驳回修订：同一修订只认首次结果，重复确认沿用首次结果
+    function decideRevision(id, decision, decider) {
+      const s = samples.find(x => x.id === id);
+      if (!s || !s.pending) return;
+      decider = decider.trim();
+      if (!decider) return toast("请填写确认人。", true);
+      if (decider === s.diver) return toast("潜水员与复核人不得相同。", true);
+      if (s.pending.decision) {
+        toast(`该修订已确认，沿用首次结果：${s.pending.decision === "approved" ? "通过" : "驳回"}（${s.pending.decidedBy}）。`);
+        return;
+      }
+      s.pending.decision = decision;
+      s.pending.decidedBy = decider;
+      s.pending.decidedAt = now();
+      if (decision === "approved") {
+        Object.assign(s, s.pending.changes);
+        s.versions.push({
+          v: s.versions.length + 1,
+          depth: s.depth, orientation: s.orientation, condition: s.condition,
+          at: now(), by: decider, reason: s.storedAt ? "入库后修订" : "封存复核修订"
+        });
+        log(s, `修订确认通过（确认人：${decider}），旧版保留为 v${s.versions.length - 1}`);
+        toast("修订通过，旧版本已保留。");
+      } else {
+        log(s, `修订驳回（确认人：${decider}），维持当前版本`);
+        toast("修订已驳回。");
+      }
+      saveSamples(); render();
+    }
+    // 入库移交：必须已复核且没有待确认修订（不能跳步）
+    function doStore(id, receiver) {
+      const s = samples.find(x => x.id === id);
+      if (!s || s.stage !== "reviewed") return toast("须先完成封存复核才能入库。", true);
+      if (isAwaiting(s)) return toast("尚有待确认修订，确认后才能入库。", true);
+      receiver = receiver.trim();
+      if (!receiver) return toast("请填写接收人。", true);
+      if (s.pending && s.pending.decision) { s.revisions.push(s.pending); s.pending = null; }
+      s.receiver = receiver;
+      s.storedAt = now();
+      s.stage = "stored";
+      log(s, `入库移交（接收人：${receiver}）`);
+      toast("入库移交完成。");
+      saveSamples(); render();
+    }
+    // 入库后再修订：移交失效，退回待复核；旧版保留，仍归属原潜次
+    function repropose(id, proposer, depth, orientation, condition) {
+      const s = samples.find(x => x.id === id);
+      if (!s || s.stage !== "stored") return;
+      proposer = proposer.trim();
+      if (!proposer) return toast("请填写申请人。", true);
+      if (proposer === s.diver) return toast("潜水员与复核人不得相同。", true);
+      const changes = collectChanges(s, depth, orientation, condition);
+      if (!changes) return toast("至少修改深度、朝向或保存状态中的一项。", true);
+      if (s.pending) s.revisions.push(s.pending);
+      s.pending = {
+        id: crypto.randomUUID(), changes,
+        old: { depth: s.depth, orientation: s.orientation, condition: s.condition },
+        by: proposer, at: now(), decision: null, decidedBy: null, decidedAt: null
+      };
+      s.stage = "reviewed";
+      log(s, `入库移交失效（接收人：${s.receiver}），样本退回待复核；${proposer} 提出${changeLabels(changes)}修订`);
+      toast("原入库移交已失效，样本退回待复核。");
+      saveSamples(); render();
+    }
+    function changeLabels(changes) {
+      return Object.keys(changes).map(k => ({ depth: "深度", orientation: "朝向", condition: "保存状态" }[k])).join("/");
+    }
+
+    /* ========== 渲染 ========== */
+    function filtered() {
+      return samples.filter(s =>
+        (!filterType.value || s.type === filterType.value) &&
+        (!filterDive.value || s.dive === filterDive.value)
+      );
+    }
+    function renderDiveOptions() {
+      const dives = [...new Set(samples.map(s => s.dive))].sort();
+      const cur = filterDive.value;
+      filterDive.innerHTML = '<option value="">全部潜次</option>' +
+        dives.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+      filterDive.value = dives.includes(cur) ? cur : "";
+      document.querySelector("#diveList").innerHTML = dives.map(d => `<option value="${esc(d)}">`).join("");
+    }
+    function renderMap() {
       map.querySelectorAll(".marker").forEach(el => el.remove());
-      const filtered = filter.value ? marks.filter(m => m.type === filter.value) : marks;
-      filtered.forEach(mark => {
+      filtered().forEach(s => {
         const el = document.createElement("button");
-        el.className = "marker " + mark.type + (mark.id === form.id.value ? " selected" : "");
-        el.style.left = mark.x + "%";
-        el.style.top = mark.y + "%";
-        el.textContent = mark.code.slice(0, 2);
-        el.onclick = event => { event.stopPropagation(); edit(mark.id); };
+        el.type = "button";
+        el.className = `marker ${s.type} stage-${s.stage}${s.id === selectedId ? " selected" : ""}${isAwaiting(s) ? " awaiting" : ""}`;
+        el.style.left = s.x + "%";
+        el.style.top = s.y + "%";
+        el.textContent = s.code.slice(0, 2);
+        el.title = `${s.dive} / ${s.code} · ${STAGE_NAME[s.stage]}${isAwaiting(s) ? "（待确认修订）" : ""}`;
+        el.onclick = e => { e.stopPropagation(); selectSample(s.id); };
         map.appendChild(el);
       });
-      if (view.value === "timeline") renderTimeline(filtered);
-      else renderList(filtered);
+    }
+    function stagePill(s) {
+      if (isAwaiting(s)) return '<span class="pill awaiting">待确认修订</span>';
+      const invalid = s.stage === "reviewed" && s.storedAt;
+      return `<span class="pill ${s.stage}">${STAGE_NAME[s.stage]}</span>` +
+        (invalid ? ' <span class="pill invalid">入库已失效</span>' : "");
     }
     function renderList(data) {
-      listTitle.textContent = "标记列表";
-      list.className = "list";
-      list.innerHTML = data.map(m => '<div class="item '+(m.id===form.id.value?'active':'')+'" data-id="'+m.id+'"><b>'+m.code+'</b> <span class="pill">'+typeNames[m.type]+'</span><div class="muted">'+m.dive+' · '+m.depth+' · '+m.orientation+'</div><div>'+m.condition+'</div></div>').join("");
-      list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => edit(el.dataset.id));
+      listTitle.textContent = "样本清单（潜次 + 编号唯一）";
+      listEl.className = "list";
+      if (!data.length) { listEl.innerHTML = '<div class="muted">没有符合筛选条件的样本。</div>'; return; }
+      listEl.innerHTML = data.map(s => `
+        <div class="item ${s.id === selectedId ? "active" : ""}" data-id="${s.id}">
+          <div class="row"><b>${esc(s.code)}</b> <span class="pill">${esc(s.dive)}</span> <span class="pill">${TYPE_NAME[s.type]}</span> ${stagePill(s)}</div>
+          <div class="muted">潜水员：${esc(s.diver)} · ${esc(s.depth)} · ${esc(s.orientation || "—")}${s.reviewer ? " · 复核人：" + esc(s.reviewer) : ""}</div>
+        </div>`).join("");
+      listEl.querySelectorAll("[data-id]").forEach(el => el.onclick = () => selectSample(el.dataset.id));
     }
     function renderTimeline(data) {
-      listTitle.textContent = "潜次时间线";
-      list.className = "timeline";
-      const groups = data.reduce((map, item) => ((map[item.dive] ||= []).push(item), map), {});
-      list.innerHTML = Object.entries(groups).map(([dive, items]) => '<div class="item"><b>'+dive+'</b><div class="muted">新增'+items.length+'个标记</div>'+items.map(i => '<div>'+i.code+' · '+typeNames[i.type]+'</div>').join("")+'</div>').join("");
+      listTitle.textContent = "移交时间线（按潜次归档，旧版不串单）";
+      listEl.className = "timeline";
+      const groups = data.reduce((g, s) => ((g[s.dive] ||= []).push(s), g), {});
+      const dives = Object.keys(groups).sort();
+      if (!dives.length) { listEl.innerHTML = '<div class="muted">没有符合筛选条件的样本。</div>'; return; }
+      listEl.innerHTML = dives.map(dive => {
+        const items = groups[dive];
+        const cnt = k => items.filter(s => s.stage === k).length;
+        return `
+        <div class="item" style="cursor:default">
+          <div class="row"><b>${esc(dive)}</b>
+            <span class="pill">共 ${items.length} 件</span>
+            <span class="pill registered">登记 ${cnt("registered")}</span>
+            <span class="pill reviewed">复核 ${cnt("reviewed")}</span>
+            <span class="pill stored">入库 ${cnt("stored")}</span>
+          </div>
+          ${items.map(s => `
+            <div style="margin-top:8px" class="row">
+              <b>${esc(s.code)}</b><span class="pill">${TYPE_NAME[s.type]}</span>${stagePill(s)}
+              <a href="javascript:void(0)" data-id="${s.id}" class="openSample" style="font-size:12px">查看</a>
+            </div>
+            <div class="history">${s.history.slice().reverse().map(h =>
+              `<div>${esc(h.text)} <span class="muted">${fmt(h.at)}</span></div>`).join("")}
+            </div>`).join("")}
+        </div>`;
+      }).join("");
+      listEl.querySelectorAll(".openSample").forEach(a => a.onclick = e => { e.preventDefault(); selectSample(a.dataset.id); });
     }
-    function edit(id) {
-      const mark = marks.find(m => m.id === id);
-      if (!mark) return;
-      for (const [key, value] of Object.entries(mark)) if (form[key]) form[key].value = value;
-      pending = { x: mark.x, y: mark.y };
+    function diffRows(p) {
+      const labels = { depth: "深度", orientation: "朝向", condition: "保存状态" };
+      return Object.keys(p.changes).map(k =>
+        `<div>${labels[k]}：<s>${esc(p.old[k]) || "（空）"}</s> → <i>${esc(p.changes[k])}</i></div>`).join("");
+    }
+    function renderDetail() {
+      const s = samples.find(x => x.id === selectedId);
+      if (!s) { detailEl.innerHTML = ""; return; }
+      const stepCls = idx => {
+        const order = { registered: 0, reviewed: 1, stored: 2 }[s.stage];
+        const invalidStore = idx === 2 && s.stage === "reviewed" && s.storedAt;
+        if (invalidStore) return "step dead";
+        if (idx < order) return "step done";
+        if (idx === order) return "step current";
+        return "step";
+      };
+      detailEl.innerHTML = `
+        <h2 class="row">${esc(s.dive)} / ${esc(s.code)}
+          <span class="pill">${TYPE_NAME[s.type]}</span>${stagePill(s)}
+          <button type="button" class="secondary" id="closeDetail" style="margin-left:auto;padding:5px 10px">关闭</button>
+        </h2>
+        <div class="stepper">
+          <div class="${stepCls(0)}"><b>① 出水登记</b>${fmt(s.registeredAt)}</div>
+          <div class="${stepCls(1)}"><b>② 封存复核</b>${s.reviewedAt ? fmt(s.reviewedAt) : "待办"}</div>
+          <div class="${stepCls(2)}"><b>③ 入库移交</b>${s.storedAt ? (s.stage === "stored" ? fmt(s.storedAt) : "已失效") : "待办"}</div>
+        </div>
+        <dl class="kv">
+          <dt>潜水员</dt><dd>${esc(s.diver)}</dd>
+          <dt>复核人</dt><dd>${esc(s.reviewer || "—")}</dd>
+          <dt>接收人</dt><dd>${esc(s.receiver || "—")}</dd>
+          <dt>深度</dt><dd>${esc(s.depth)}</dd>
+          <dt>朝向</dt><dd>${esc(s.orientation || "—")}</dd>
+          <dt>保存状态</dt><dd>${esc(s.condition || "—")}</dd>
+          <dt>备注</dt><dd>${esc(s.note || "—")}</dd>
+        </dl>
+
+        ${s.pending ? `
+        <div class="card ${s.pending.decision ? "locked" : ""}">
+          <div class="row"><b>${s.pending.decision ? "修订已确认（首次结果已锁定）" : "待确认修订"}</b>
+            <span class="pill">${esc(s.pending.by)} 提议 · ${fmt(s.pending.at)}</span></div>
+          <div class="diff">${diffRows(s.pending)}</div>
+          ${s.pending.decision
+            ? `<div class="muted">首次结论：<b>${s.pending.decision === "approved" ? "确认通过" : "驳回"}</b>（${esc(s.pending.decidedBy)}，${fmt(s.pending.decidedAt)}）。重复确认沿用首次结果，不会再次改值。</div>`
+            : `<form data-act="decide">
+                <label>确认人（不得与潜水员 ${esc(s.diver)} 相同）</label>
+                <input name="decider" required>
+                <div class="toolbar" style="margin-top:8px">
+                  <button name="decision" value="approved">确认通过</button>
+                  <button name="decision" value="rejected" class="secondary">驳回修订</button>
+                </div>
+              </form>`}
+        </div>` : ""}
+
+        ${s.stage === "registered" ? `
+        <details class="box" open><summary>封存复核（第 ② 步）</summary>
+          <form data-act="review">
+            <label>复核人（不得与潜水员 ${esc(s.diver)} 相同）</label><input name="reviewer" required>
+            <h3>如需修订深度 / 朝向 / 保存状态，填写新值（留空表示不改），将生成待确认修订并保留旧版</h3>
+            <label>深度</label><input name="depth" placeholder="当前：${esc(s.depth)}">
+            <label>朝向</label><input name="orientation" placeholder="当前：${esc(s.orientation) || "当前：（空）"}">
+            <label>保存状态</label><input name="condition" placeholder="当前：${esc(s.condition) || "当前：（空）"}">
+            <div class="toolbar" style="margin-top:8px"><button>完成封存复核</button></div>
+          </form>
+          <button class="danger" id="delBtn" style="margin-top:8px">删除该登记（仅限复核前）</button>
+        </details>` : ""}
+
+        ${s.stage === "reviewed" && !isAwaiting(s) ? `
+        <details class="box" ${s.storedAt ? "" : "open"}><summary>${s.storedAt ? "重新办理入库移交（第 ③ 步）" : "入库移交（第 ③ 步）"}</summary>
+          <form data-act="store">
+            <label>接收人</label><input name="receiver" value="${esc(s.receiver || "")}" required>
+            <div class="toolbar" style="margin-top:8px"><button>办理入库移交</button></div>
+          </form>
+        </details>` : ""}
+        ${s.stage === "reviewed" && isAwaiting(s) ? '<div class="muted">该样本有待确认修订，确认通过或驳回后，方可办理入库。</div>' : ""}
+
+        ${s.stage === "stored" ? `
+        <details class="box"><summary>入库后申请再修订（移交将失效并退回待复核）</summary>
+          <form data-act="repropose">
+            <label>申请人（不得与潜水员 ${esc(s.diver)} 相同）</label><input name="proposer" required>
+            <label>深度</label><input name="depth" value="${esc(s.depth)}">
+            <label>朝向</label><input name="orientation" value="${esc(s.orientation)}">
+            <label>保存状态</label><input name="condition" value="${esc(s.condition)}">
+            <div class="muted">提交后本次入库移交立即失效，样本回到封存复核待确认；旧版仍可在此查询，且始终归属 ${esc(s.dive)}，不会进入其他潜次清单。</div>
+            <div class="toolbar" style="margin-top:8px"><button class="danger">提交再修订</button></div>
+          </form>
+        </details>` : ""}
+
+        <h3>历史版本（旧版可查，不并入其他潜次）</h3>
+        ${s.versions.slice().reverse().map(v => `
+          <div class="card version ${v.v === s.versions.length ? "current" : ""}">
+            <div class="row"><b>v${v.v}</b>
+              <span class="pill">${esc(v.reason)}</span>
+              ${v.v === s.versions.length ? '<span class="pill stored">当前版本</span>' : ""}
+              <span class="muted" style="margin-left:auto">${esc(v.by)} · ${fmt(v.at)}</span></div>
+            <div class="muted">深度 ${esc(v.depth)} · 朝向 ${esc(v.orientation || "—")} · 状态 ${esc(v.condition || "—")}</div>
+          </div>`).join("")}
+
+        <h3>流转记录</h3>
+        <div class="history">${s.history.slice().reverse().map(h =>
+          `<div>${esc(h.text)} <span class="muted">${fmt(h.at)}</span></div>`).join("")}</div>
+      `;
+      detailEl.querySelector("#closeDetail").onclick = () => { selectedId = null; render(); };
+      const del = detailEl.querySelector("#delBtn");
+      if (del) del.onclick = () => {
+        if (!confirm(`确认删除 ${s.dive} / ${s.code} 的出水登记？`)) return;
+        samples = samples.filter(x => x.id !== s.id);
+        selectedId = null;
+        saveSamples(); render();
+        toast("登记已删除。");
+      };
+      detailEl.querySelectorAll("form[data-act]").forEach(f => {
+        f.onsubmit = e => {
+          e.preventDefault();
+          const d = Object.fromEntries(new FormData(f).entries());
+          if (f.dataset.act === "review") doReview(s.id, d.reviewer, d.depth || "", d.orientation || "", d.condition || "");
+          if (f.dataset.act === "store") doStore(s.id, d.receiver);
+          if (f.dataset.act === "repropose") repropose(s.id, d.proposer, d.depth || "", d.orientation || "", d.condition || "");
+          if (f.dataset.act === "decide") {
+            const btn = e.submitter;
+            decideRevision(s.id, btn ? btn.value : "approved", d.decider);
+          }
+        };
+      });
+    }
+    function render() {
+      renderDiveOptions();
+      renderMap();
+      const data = filtered();
+      if (viewSel.value === "timeline") renderTimeline(data);
+      else renderList(data);
+      renderDetail();
+    }
+    function selectSample(id) {
+      selectedId = id;
+      regBox.open = false;
+      pendingPos = null;
       render();
+      detailEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
+
+    /* ========== 出水登记 ========== */
     map.addEventListener("click", event => {
+      if (event.target.closest(".marker")) return;
       const rect = map.getBoundingClientRect();
-      pending = { x: Number(((event.clientX - rect.left) / rect.width * 100).toFixed(2)), y: Number(((event.clientY - rect.top) / rect.height * 100).toFixed(2)) };
-      form.reset();
-      form.id.value = "";
-      form.code.value = "M-" + String(marks.length + 1).padStart(3, "0");
-      form.dive.value = "DIVE-01";
+      pendingPos = {
+        x: Number(((event.clientX - rect.left) / rect.width * 100).toFixed(2)),
+        y: Number(((event.clientY - rect.top) / rect.height * 100).toFixed(2))
+      };
+      selectedId = null;
+      regBox.open = true;
+      posHint.textContent = `已选取出水点位：(${pendingPos.x}%, ${pendingPos.y}%)，填写后完成登记。`;
+      if (!regForm.dive.value) regForm.dive.value = filterDive.value || "";
       render();
     });
-    form.onsubmit = event => {
+    regForm.onsubmit = event => {
       event.preventDefault();
-      if (!pending) pending = { x: 50, y: 50 };
-      const data = Object.fromEntries(new FormData(form).entries());
-      if (data.id) Object.assign(marks.find(m => m.id === data.id), data, pending);
-      else marks.push({ ...data, id: crypto.randomUUID(), ...pending });
-      save(); render();
+      const d = Object.fromEntries(new FormData(regForm).entries());
+      if (!pendingPos) return toast("请先在沉船平面图上点击选取出水点位。", true);
+      if (findByDiveCode(d.dive, d.code)) return toast(`「${d.dive.trim()} / ${d.code.trim()}」已存在，潜次 + 编号必须唯一。`, true);
+      const t = now();
+      const s = {
+        id: crypto.randomUUID(), dive: d.dive.trim(), code: d.code.trim(), type: d.type,
+        diver: d.diver.trim(), depth: d.depth.trim(), orientation: d.orientation.trim(),
+        condition: d.condition.trim(), note: d.note.trim(),
+        x: pendingPos.x, y: pendingPos.y,
+        stage: "registered", reviewer: null, receiver: null,
+        registeredAt: t, reviewedAt: null, storedAt: null,
+        pending: null, revisions: [],
+        versions: [{ v: 1, depth: d.depth.trim(), orientation: d.orientation.trim(), condition: d.condition.trim(), at: t, by: d.diver.trim(), reason: "出水登记" }],
+        history: [{ at: t, text: `出水登记（潜水员：${d.diver.trim()}）` }]
+      };
+      samples.push(s);
+      saveSamples();
+      regForm.reset();
+      pendingPos = null;
+      posHint.textContent = "尚未在平面图选取出水点位。";
+      selectedId = s.id;
+      regBox.open = false;
+      render();
+      toast("出水登记完成，下一步：封存复核。");
     };
-    document.querySelector("#deleteBtn").onclick = () => {
-      if (!form.id.value) return;
-      marks = marks.filter(m => m.id !== form.id.value);
-      form.reset(); pending = null; save(); render();
-    };
+    document.querySelector("#regCancel").onclick = () => { regBox.open = false; pendingPos = null; posHint.textContent = "尚未在平面图选取出水点位。"; };
+
+    /* ========== 筛选 / 时间线 / 导出（刷新后保持一致） ========== */
+    filterType.onchange = () => { savePrefs(); render(); };
+    filterDive.onchange = () => { savePrefs(); render(); };
+    viewSel.onchange = () => { savePrefs(); render(); };
     document.querySelector("#exportBtn").onclick = () => {
-      const blob = new Blob([JSON.stringify(marks, null, 2)], { type: "application/json" });
+      const payload = {
+        app: "水下考古样本移交台",
+        exportedAt: new Date().toISOString(),
+        filters: { type: filterType.value, dive: filterDive.value, view: viewSel.value },
+        total: filtered().length,
+        records: filtered()
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = "dive-marks.json"; a.click(); URL.revokeObjectURL(a.href);
+      a.href = URL.createObjectURL(blob);
+      a.download = `样本移交_${filterDive.value || "全部潜次"}_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
     };
-    filter.onchange = render; view.onchange = render;
+
     render();
   </script>
 </body>
